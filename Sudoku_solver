@@ -1,0 +1,188 @@
+'''
+Sudoku Solver- using backtracking algorithm and recursion
+Author: Ivan Sapozhnikov
+Maintainer: Ivan Sapozhnikov
+Date: 08-27-2023
+Version: 1
+Dependencies: Copy & Numpy
+'''
+
+import numpy as np
+import copy
+
+sudoku_grid_1 = [[0,0,0,0,0,0,0,0,2],
+                 [0,0,0,0,0,0,9,4,0],
+                 [0,0,3,0,0,0,0,0,5],
+                 [0,9,2,3,0,5,0,7,4],
+                 [8,4,0,0,0,0,0,0,0],
+                 [0,6,7,0,9,8,0,0,0],
+                 [0,0,0,7,0,6,0,0,0],
+                 [0,0,0,9,0,0,0,2,0],
+                 [4,0,8,5,0,0,3,6,0]]
+
+sudoku_grid_1_answer = [[6,8,4,1,5,9,7,3,2],
+                        [7,5,1,8,3,2,9,4,6],
+                        [9,2,3,6,7,4,1,8,5],
+                        [1,9,2,3,6,5,8,7,4],
+                        [8,4,5,2,1,7,6,9,3],
+                        [3,6,7,4,9,8,2,5,1],
+                        [2,3,9,7,4,6,5,1,8],
+                        [5,1,6,9,8,3,4,2,7],
+                        [4,7,8,5,2,1,3,6,9]]
+
+sudoku_grid_2 = [[4,0,6,0,0,0,0,5,9],
+                 [0,0,0,0,4,0,2,0,0],
+                 [0,7,0,0,0,0,0,0,0],
+                 [0,0,5,9,1,0,0,6,0],
+                 [0,1,3,0,0,0,8,9,4],
+                 [0,0,0,2,0,0,0,0,1],
+                 [5,0,8,0,0,0,0,0,0],
+                 [0,0,0,0,3,0,0,0,8],
+                 [0,4,0,0,6,0,1,0,0]]
+
+sudoku_grid_2_answer = [[4,3,6,1,2,8,7,5,9],
+                        [9,5,1,7,4,6,2,8,3],
+                        [8,7,2,3,5,9,4,1,6],
+                        [7,8,5,9,1,4,3,6,2],
+                        [2,1,3,6,7,5,8,9,4],
+                        [6,9,4,2,8,3,5,7,1],
+                        [5,2,8,4,9,1,6,3,7],
+                        [1,6,7,5,3,2,9,4,8],
+                        [3,4,9,8,6,7,1,2,5]]
+
+sudoku_grid_3 = [[0,0,0,0,0,8,0,9,0],
+                 [0,0,3,0,0,1,0,0,0],
+                 [2,0,0,0,0,7,6,0,0],
+                 [0,0,0,0,2,0,0,0,0],
+                 [0,9,4,0,8,0,2,0,0],
+                 [7,1,0,0,4,0,9,0,5],
+                 [1,0,0,9,0,0,5,3,0],
+                 [5,7,0,0,0,0,8,4,0],
+                 [0,0,0,0,0,6,0,2,1]]
+
+sudoku_grid_3_answer = [[6,4,7,5,3,8,1,9,2],
+                        [9,5,3,2,6,1,4,7,8],
+                        [2,8,1,4,9,7,6,5,3],
+                        [8,6,5,7,2,9,3,1,4],
+                        [3,9,4,1,8,5,2,6,7],
+                        [7,1,2,6,4,3,9,8,5],
+                        [1,2,8,9,7,4,5,3,6],
+                        [5,7,6,3,1,2,8,4,9],
+                        [4,3,9,8,5,6,7,2,1]]
+
+select = input("Please choose a sudoku Puzzle to solve (select number 1-3): \n")
+if select == "1":
+  sudoku_grid = sudoku_grid_1
+  sudoku_grid_answer = sudoku_grid_1_answer
+elif select == "2":
+  sudoku_grid = sudoku_grid_2
+  sudoku_grid_answer = sudoku_grid_2_answer
+elif select == "3":
+  sudoku_grid = sudoku_grid_3
+  sudoku_grid_answer = sudoku_grid_3_answer
+else:
+  print("Please select a valid Number (1-3)")
+
+'''
+Input: Any list
+Does: Makes sure all numbers are unique (other than 0's)
+output: True (All unique) or False (have repeats)
+'''
+def unique_numbers(lst):
+    seen = set()
+    for num in lst:
+        if num != 0:
+            if num in seen:
+                return False
+            seen.add(num)
+    return True
+
+'''
+Input: Sudoku Grid
+Does: Looks for 0's
+Output: the (x,y) quardinate of the 0 OR None (if no 0's)
+'''
+def find_empty_x_y(grid):
+  for y in range(len(grid)):
+    for x in range(len(grid[0])):
+      if grid[y][x] == 0:
+        return (x, y)
+  return None
+
+'''
+Input: X coordinate, Y coordinate, Number at the xy point, and Sudoku Grid
+Does: Determines if that points is violates any rules in the given Sudoku Board
+Outputs: True (possible) or False (not possible)
+'''
+def possible(x, y, n, grid):
+  new_grid = copy.deepcopy(grid)
+  new_grid[y][x] = n
+  column = []
+  row = new_grid[y]
+  box = []
+
+
+  # Get the ranges for the x and y for the box
+  x0, y0 = 3 * (x // 3), 3 * (y // 3)
+  x_ran, y_ran = [x0 + i for i in range(3)], [y0 + i for i in range(3)]
+
+  # Get the column, and box
+  for i in range(len(new_grid)):
+    lst = new_grid[i]
+    # get each column
+    column.append(lst[x])
+
+    # get the box
+    if i in y_ran:
+      for x_r in x_ran:
+        box.append(lst[x_r])
+
+  return unique_numbers(row) and unique_numbers(box) and unique_numbers(column)
+
+
+'''
+input: Sudoku board
+Does: Solves Sudoku Board
+Output: True or False. If True, solves the given Sudoku Board Variable
+'''
+def solver(grid):
+  found = find_empty_x_y(grid)
+  if found is None:
+    return True # grid is solved
+  else:
+    x, y = found
+
+
+  for n in range(1,10):
+    if possible(x,y,n,grid): # if example number is possible
+      grid[y][x] = n
+      try_solve = solver(grid)
+      if try_solve: # if solving returns True (i.e solved) Keep returnIng true
+        return True
+      grid[y][x] = 0 # backtracking (if it doesnt work make it 0)
+  return False
+
+# Show the chosen Sudoku Puzzle
+print("Here is Your Sudoku Puzzle:")
+sudoku = copy.deepcopy(sudoku_grid)
+print(np.matrix(sudoku_grid))
+a = solver(sudoku) # acutally Solve it using solve function
+print()
+
+# Output our solution to the user
+if a is False:
+  print("There is no solution to this sudoku Puzzle :( \n")
+else:
+  print("Here is the solution to the Sudoku Puzzle: \n", np.matrix(sudoku))
+  print()
+
+# Check against the manual Solution
+if(sudoku == sudoku_grid_answer):
+  print("Check complete. Solution is correct")
+else:
+  print("Check failed. Please check Answer")
+
+if(sudoku_grid == sudoku_grid_answer):
+  print("Check complete. Solution is correct")
+else:
+  print("Check failed. Please check Answer")
